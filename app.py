@@ -48,11 +48,38 @@ def compile_image():
 
         # Delegate image processing to tempCodeRunnerFile.py
         import subprocess
+        import sys
         try:
-            # Use the Python executable from the virtual environment
-            venv_python = os.path.join(os.getcwd(), 'env', 'Scripts', 'python.exe')
+            # Determine the correct Python executable
+            # Try different possible Python executables in order of preference
+            possible_pythons = [
+                os.path.join(os.getcwd(), 'env', 'Scripts', 'python.exe'),  # Windows venv
+                os.path.join(os.getcwd(), 'env', 'bin', 'python'),          # Linux venv
+                sys.executable,                                              # Current Python
+                'python3',                                                   # System python3
+                'python'                                                     # System python
+            ]
+            
+            python_executable = None
+            for python_path in possible_pythons:
+                if os.path.isfile(python_path) and os.access(python_path, os.X_OK):
+                    python_executable = python_path
+                    break
+                elif python_path in ['python3', 'python']:
+                    # For system commands, check if they exist
+                    try:
+                        subprocess.run([python_path, '--version'], capture_output=True, check=True)
+                        python_executable = python_path
+                        break
+                    except (subprocess.CalledProcessError, FileNotFoundError):
+                        continue
+            
+            if python_executable is None:
+                return jsonify({"error": "No suitable Python executable found"}), 500
+            
+            print(f"[DEBUG] Using Python executable: {python_executable}")
             result = subprocess.run([
-                venv_python,
+                python_executable,
                 os.path.join(os.getcwd(), 'tempCodeRunnerFile.py'),
                 filepath
             ], capture_output=True, text=True, check=True)
