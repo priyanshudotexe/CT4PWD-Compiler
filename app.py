@@ -12,6 +12,10 @@ import eval
 
 app = Flask(__name__)
 
+@app.route('/helloworld', methods=['GET'])
+def helloworld():
+    return jsonify({"message": "helloworld"}), 200
+
 @app.route('/compile', methods=['POST'])
 def compile_image():
     try:
